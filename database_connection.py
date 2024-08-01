@@ -1,14 +1,63 @@
-import os
-import psycopg2
-import configparser
-from psycopg2 import pool
-import pandas as pd
+import os # provides functions to interact with the operating system
+import psycopg2 # database adapter for python to communicate with sql db
+import configparser #parses config files
+from psycopg2 import pool # pool is used to manage a pool of db connections
+import pandas as pd # data analysis module  
+import matplotlib.pyplot as plt # matplotlib is a plotting library
+import seaborn as sns #data visualization library
+
+# Create a dictionary for saving plots if it doesn't exist
+output_dir = 'plots'
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
 
 # parsing manufacturing data from csv file
 # must use absolute file path if file being parsed is not in same project directory as python file
 # data = pd.read_csv('/mnt/c/Users/ninih/Documents/Programming/PMME/PM-Data.csv')
 # can just use file name in this case because PM-Data.csv is in the same project directory as database_connection.py
 data = pd.read_csv('PM-Data.csv')
+
+# summarizing of data...describe() generates descriptive statistics that summarize the central tendency(mean, median, mode),
+# dispersion(e.g. range, variance, and standard deviation), and shape of a dataset's distribution, excluding NaN values
+summary_stats = data.describe()
+print(summary_stats)
+
+# Check for missing values and print out the total number of missing values for each column
+missing_values = data.isnull().sum()
+print(missing_values)
+
+# Histograms for numerical features
+# list of specified columns in the dataset
+numerical_features = ['air_temperature_k', 'process_temperature_k', 'rotational_speed_rpm', 'torque_nm', 'tool_wear_min']
+# selects the columns specified in the numerical_features list in the dataframe 'data'
+# then creates a histogram of each of numerical_features columns specified with 15 bins each and figure size of 15x10 
+data[numerical_features].hist(bins=15, figsize=(15, 10))
+# displays histograms generated in previous line
+plt.savefig(os.path.join(output_dir, 'histograms.png'))
+plt.close()
+
+# Scatter plots to examine relationships
+# creates a martix of scatterplots for each pair of numerical_features
+sns.pairplot(data, vars=numerical_features, hue='machine_failure')
+plt.savefig(os.path.join(output_dir, 'scatter_plot.png'))
+plt.close()
+
+# ensure only numeric columns are used for correlation
+numeric_cols = data.select_dtypes(include=['number']).columns
+
+# Heatmap for correlation
+# creates a new figure with size 10inx8in
+plt.figure(figsize=(10, 8))
+# computes the correlation matrix for the dataframe 'data'...
+# correlation matrix shows the correlation coefficients between the pairs of numerical 
+# features which indicate how strongly they are related to each other
+correlation_matrix = data[numeric_cols].corr() 
+# creates the heatmap of the correlation matrix
+# annot=True adds correlation coefficients as annotations on the heatmap
+# cmap='coolwarm' sets the colormap to a color gradient of cool to warm colors
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
+plt.savefig(os.path.join(output_dir, 'heatmap.png'))
+plt.close()
 
 # Load connection parameters prioritizing environment variables first then 'config.ini' being the fallback
 # ***Ensure that your 'config.ini' file is added to .gitignore so it is NOT tracked by GIT
@@ -99,5 +148,5 @@ def load_data_to_db(data):
         # Close the connection pool
         if db_conn_pool:
             db_conn_pool.closeall()
-            
-load_data_to_db(data)
+# only need to call the below function when updating the psql db          
+# load_data_to_db(data)
