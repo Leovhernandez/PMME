@@ -5,7 +5,9 @@ from psycopg2 import pool # pool is used to manage a pool of db connections
 import pandas as pd # data analysis module  
 import matplotlib.pyplot as plt # matplotlib is a plotting library
 import seaborn as sns #data visualization library
-import numpy as np
+import numpy as np # numerical computing library that supports arrays, matrices, and a wide range of mathematical functions to operate on these arrays 
+from sklearn.model_selection import train_test_split # scikit-learn library is used for building machine learning models
+from sklearn.linear_model import LogisticRegression # imports LogisticRegression class from linear_model module, which provides a variety of machine learning algorithms for modeling
 
 # Create a dictionary for saving plots if it doesn't exist
 output_dir = 'plots'
@@ -34,6 +36,24 @@ data['rotational_speed_rpm'] = data['rotational_speed_rpm'].clip(lower=q_low, up
 data['torque_nm_log'] = np.log1p(data['torque_nm'])
 data['rotational_speed_rpm_log'] = np.log1p(data['rotational_speed_rpm'])
 
+# Define X (the features dataframe) and y (Target variable series)
+X = data[['air_temperature_k', 'process_temperature_k', 'rotational_speed_rpm_log', 'torque_nm_log', 'tool_wear_min']]
+y = data['machine_failure']
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initializing Logistic Regression model
+#### Maybe we do decision trees, random forests, gradient boosting, and neural networks after logistic regression?
+model = LogisticRegression()
+
+# Fit the model on the training data
+model.fit(X_train, y_train)
+
+# Evaluate the model on the test data
+accuracy = model.score(X_test, y_test)
+print(f"Model Accuracy: {accuracy * 100:.2f}%")
+
 # summarizing of data...describe() generates descriptive statistics that summarize the central tendency(mean, median, mode),
 # dispersion(e.g. range, variance, and standard deviation), and shape of a dataset's distribution, excluding NaN values
 summary_stats = data.describe()
@@ -54,7 +74,7 @@ plt.savefig(os.path.join(output_dir, 'histograms.png'))
 plt.close()
 
 # Scatter plots to examine relationships
-# creates a martix of scatterplots for each pair of numerical_features
+# creates a matrix of scatterplots for each pair of numerical_features
 sns.pairplot(data, vars=numerical_features, hue='machine_failure')
 plt.savefig(os.path.join(output_dir, 'scatter_plot.png'))
 plt.close()
