@@ -5,6 +5,7 @@ from psycopg2 import pool # pool is used to manage a pool of db connections
 import pandas as pd # data analysis module  
 import matplotlib.pyplot as plt # matplotlib is a plotting library
 import seaborn as sns #data visualization library
+import numpy as np
 
 # Create a dictionary for saving plots if it doesn't exist
 output_dir = 'plots'
@@ -17,6 +18,22 @@ if not os.path.exists(output_dir):
 # can just use file name in this case because PM-Data.csv is in the same project directory as database_connection.py
 data = pd.read_csv('PM-Data.csv')
 
+# capping and flooring for 'torque_nm'
+# for identifying outliers using statistical percentiles
+q_low = data['torque_nm'].quantile(0.01)
+q_high = data['torque_nm'].quantile(0.99)
+data['torque_nm'] = data['torque_nm'].clip(lower=q_low, upper=q_high)
+
+# capping and flooring for 'rotational_speed_rpm'
+# for identifying outliers using statistical percentiles
+q_low = data['rotational_speed_rpm'].quantile(0.01)
+q_high = data['rotational_speed_rpm'].quantile(0.99)
+data['rotational_speed_rpm'] = data['rotational_speed_rpm'].clip(lower=q_low, upper=q_high)
+
+# Applying logarithmic transformation
+data['torque_nm_log'] = np.log1p(data['torque_nm'])
+data['rotational_speed_rpm_log'] = np.log1p(data['rotational_speed_rpm'])
+
 # summarizing of data...describe() generates descriptive statistics that summarize the central tendency(mean, median, mode),
 # dispersion(e.g. range, variance, and standard deviation), and shape of a dataset's distribution, excluding NaN values
 summary_stats = data.describe()
@@ -28,7 +45,7 @@ print(missing_values)
 
 # Histograms for numerical features
 # list of specified columns in the dataset
-numerical_features = ['air_temperature_k', 'process_temperature_k', 'rotational_speed_rpm', 'torque_nm', 'tool_wear_min']
+numerical_features = ['air_temperature_k', 'process_temperature_k', 'rotational_speed_rpm', 'torque_nm', 'tool_wear_min', 'torque_nm_log', 'rotational_speed_rpm_log']
 # selects the columns specified in the numerical_features list in the dataframe 'data'
 # then creates a histogram of each of numerical_features columns specified with 15 bins each and figure size of 15x10 
 data[numerical_features].hist(bins=15, figsize=(15, 10))
